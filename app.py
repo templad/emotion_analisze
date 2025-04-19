@@ -181,4 +181,4 @@ if __name__ == '__main__':
     os.makedirs(templates_dir, exist_ok=True)
     shutil.copy('app.html', os.path.join(templates_dir, 'app.html'))
     
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
