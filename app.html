@@ -280,8 +280,8 @@
                 
                 loadingCrawler.style.display = 'block';
                 
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/crawl';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=crawl';
                 
                 // 调用Python爬取函数
                 fetch(apiUrl, {
@@ -318,8 +318,8 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/upload';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=upload';
                 
                 fetch(apiUrl, {
                     method: 'POST',
@@ -341,8 +341,8 @@
             
             // 加载评论
             function loadComments() {
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/get_comments';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=get_comments';
                 
                 fetch(apiUrl)
                 .then(response => response.json())
@@ -367,8 +367,8 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/analyze_chinese';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=analyze_chinese';
                 
                 fetch(apiUrl, {
                     method: 'POST'
@@ -399,8 +399,8 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/analyze_japanese';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=analyze_japanese';
                 
                 fetch(apiUrl, {
                     method: 'POST'
@@ -431,8 +431,8 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/analyze_ai';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=analyze_ai';
                 
                 fetch(apiUrl, {
                     method: 'POST'
@@ -460,8 +460,8 @@
             
             // 加载分析结果
             function loadAnalysisResults() {
-                // 使用绝对路径
-                const apiUrl = window.location.origin + '/api/get_analysis_results';
+                // 使用api_handler
+                const apiUrl = window.location.origin + '/api_handler?action=get_analysis_results';
                 
                 fetch(apiUrl)
                 .then(response => response.json())
@@ -504,8 +504,8 @@
             });
 
             // 检查是否有分析结果，如果有则启用可视化按钮
-            // 使用绝对路径
-            const resultsApiUrl = window.location.origin + '/api/get_analysis_results';
+            // 使用api_handler
+            const resultsApiUrl = window.location.origin + '/api_handler?action=get_analysis_results';
             
             fetch(resultsApiUrl)
             .then(response => response.json())

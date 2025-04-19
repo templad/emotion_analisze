@@ -26,99 +26,136 @@ def index():
 def home():
     return redirect('/app.html')
 
-@app.route('/api/crawl', methods=['POST'])
-def crawl():
-    data = request.json
-    url = data.get('url')
+# 统一的API入口点
+@app.route('/api_handler', methods=['GET', 'POST'])
+def api_handler():
+    action = request.args.get('action')
     
-    if not url:
-        return jsonify({'success': False, 'error': '无效的URL'})
-    
-    try:
-        # 调用爬虫函数
-        crawl_main(url)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'error': '没有上传文件'})
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': '没有选择文件'})
-    
-    try:
-        # 保存上传的文件到评论文件
-        file.save(COMMENTS_FILE)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get_comments', methods=['GET'])
-def get_comments():
-    try:
-        if not os.path.exists(COMMENTS_FILE):
-            return jsonify({'success': False, 'error': '评论文件不存在'})
+    # 爬取评论
+    if action == 'crawl' and request.method == 'POST':
+        data = request.json
+        url = data.get('url')
         
-        with open(COMMENTS_FILE, 'r', encoding='utf-8') as f:
-            comments = [line.strip() for line in f.readlines()]
+        if not url:
+            return jsonify({'success': False, 'error': '无效的URL'})
         
-        return jsonify({'success': True, 'comments': comments})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/analyze_chinese', methods=['POST'])
-def analyze_chinese():
-    try:
-        analyse_chinese_comments(COMMENTS_FILE)
-        # 生成可视化页面
-        generate_visualization_html()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/analyze_japanese', methods=['POST'])
-def analyze_japanese():
-    try:
-        analyse_japanese_comments(COMMENTS_FILE)
-        # 生成可视化页面
-        generate_visualization_html()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/analyze_ai', methods=['POST'])
-def analyze_ai():
-    try:
-        status = ai_analysis(COMMENTS_FILE)
-        if status == 0:
+        try:
+            # 调用爬虫函数
+            crawl_main(url)
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # 上传文件
+    elif action == 'upload' and request.method == 'POST':
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '没有上传文件'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '没有选择文件'})
+        
+        try:
+            # 保存上传的文件到评论文件
+            file.save(COMMENTS_FILE)
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # 获取评论
+    elif action == 'get_comments' and request.method == 'GET':
+        try:
+            if not os.path.exists(COMMENTS_FILE):
+                return jsonify({'success': False, 'error': '评论文件不存在'})
+            
+            with open(COMMENTS_FILE, 'r', encoding='utf-8') as f:
+                comments = [line.strip() for line in f.readlines()]
+            
+            return jsonify({'success': True, 'comments': comments})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # 中文分析
+    elif action == 'analyze_chinese' and request.method == 'POST':
+        try:
+            analyse_chinese_comments(COMMENTS_FILE)
             # 生成可视化页面
             generate_visualization_html()
             return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'status': status})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # 日语分析
+    elif action == 'analyze_japanese' and request.method == 'POST':
+        try:
+            analyse_japanese_comments(COMMENTS_FILE)
+            # 生成可视化页面
+            generate_visualization_html()
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # AI分析
+    elif action == 'analyze_ai' and request.method == 'POST':
+        try:
+            status = ai_analysis(COMMENTS_FILE)
+            if status == 0:
+                # 生成可视化页面
+                generate_visualization_html()
+                return jsonify({'success': True})
+            else:
+                return jsonify({'success': False, 'status': status})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    # 获取分析结果
+    elif action == 'get_analysis_results' and request.method == 'GET':
+        try:
+            # 读取分析结果
+            positive = read_file_if_exists(POSITIVE_FILE)
+            neutral = read_file_if_exists(NEUTRAL_FILE)
+            negative = read_file_if_exists(NEGATIVE_FILE)
+            
+            return jsonify({
+                'success': True,
+                'positive': positive,
+                'neutral': neutral,
+                'negative': negative
+            })
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    else:
+        return jsonify({'success': False, 'error': '无效的操作'})
+
+# 保留原来的API路由进行兼容
+@app.route('/api/crawl', methods=['POST'])
+def crawl():
+    return api_handler()
+
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    return api_handler()
+
+@app.route('/api/get_comments', methods=['GET'])
+def get_comments():
+    return api_handler()
+
+@app.route('/api/analyze_chinese', methods=['POST'])
+def analyze_chinese():
+    return api_handler()
+
+@app.route('/api/analyze_japanese', methods=['POST'])
+def analyze_japanese():
+    return api_handler()
+
+@app.route('/api/analyze_ai', methods=['POST'])
+def analyze_ai():
+    return api_handler()
 
 @app.route('/api/get_analysis_results', methods=['GET'])
 def get_analysis_results():
-    try:
-        # 读取分析结果
-        positive = read_file_if_exists(POSITIVE_FILE)
-        neutral = read_file_if_exists(NEUTRAL_FILE)
-        negative = read_file_if_exists(NEGATIVE_FILE)
-        
-        return jsonify({
-            'success': True,
-            'positive': positive,
-            'neutral': neutral,
-            'negative': negative
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    return api_handler()
 
 def read_file_if_exists(file_path):
     if os.path.exists(file_path):
