@@ -1,0 +1,184 @@
+from flask import Flask, request, jsonify, render_template
+import os
+import shutil
+from paqu import main_paqu as crawl_main
+from analyse import analyse_chinese_comments, analyse_japanese_comments, ai_analysis
+from pyecharts.charts import Pie, Bar
+from pyecharts import options as opts
+from pyecharts.globals import ThemeType
+
+app = Flask(__name__)
+
+# 确保评论目录存在
+os.makedirs('comment', exist_ok=True)
+
+# 评论文件路径
+COMMENTS_FILE = 'comment/comments.txt'
+POSITIVE_FILE = 'comment/positive.txt'
+NEUTRAL_FILE = 'comment/neutral.txt'
+NEGATIVE_FILE = 'comment/negative.txt'
+
+@app.route('/')
+def home():
+    return render_template('app.html')
+
+@app.route('/crawl', methods=['POST'])
+def crawl():
+    data = request.json
+    url = data.get('url')
+    
+    if not url:
+        return jsonify({'success': False, 'error': '无效的URL'})
+    
+    try:
+        # 调用爬虫函数
+        crawl_main(url)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': '没有上传文件'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': '没有选择文件'})
+    
+    try:
+        # 保存上传的文件到评论文件
+        file.save(COMMENTS_FILE)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/get_comments', methods=['GET'])
+def get_comments():
+    try:
+        if not os.path.exists(COMMENTS_FILE):
+            return jsonify({'success': False, 'error': '评论文件不存在'})
+        
+        with open(COMMENTS_FILE, 'r', encoding='utf-8') as f:
+            comments = [line.strip() for line in f.readlines()]
+        
+        return jsonify({'success': True, 'comments': comments})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/analyze_chinese', methods=['POST'])
+def analyze_chinese():
+    try:
+        analyse_chinese_comments(COMMENTS_FILE)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/analyze_japanese', methods=['POST'])
+def analyze_japanese():
+    try:
+        analyse_japanese_comments(COMMENTS_FILE)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/analyze_ai', methods=['POST'])
+def analyze_ai():
+    try:
+        status = ai_analysis(COMMENTS_FILE)
+        if status == 0:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'status': status})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/get_analysis_results', methods=['GET'])
+def get_analysis_results():
+    try:
+        # 读取分析结果
+        positive = read_file_if_exists(POSITIVE_FILE)
+        neutral = read_file_if_exists(NEUTRAL_FILE)
+        negative = read_file_if_exists(NEGATIVE_FILE)
+        
+        return jsonify({
+            'success': True,
+            'positive': positive,
+            'neutral': neutral,
+            'negative': negative
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+def read_file_if_exists(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return [line.strip() for line in f.readlines()]
+    return []
+
+# 数据可视化路由
+@app.route('/visualization')
+def visualization():
+    try:
+        # 读取分析结果
+        positive = read_file_if_exists(POSITIVE_FILE)
+        neutral = read_file_if_exists(NEUTRAL_FILE)
+        negative = read_file_if_exists(NEGATIVE_FILE)
+        
+        positive_count = len(positive)
+        neutral_count = len(neutral)
+        negative_count = len(negative)
+        
+        # 生成饼图
+        pie = (
+            Pie(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
+            .add(
+                "",
+                [
+                    ["积极评论", positive_count],
+                    ["中性评论", neutral_count],
+                    ["消极评论", negative_count],
+                ],
+                radius=["40%", "75%"],
+            )
+            .set_global_opts(
+                title_opts=opts.TitleOpts(title="评论情感分布"),
+                legend_opts=opts.LegendOpts(orient="vertical", pos_top="15%", pos_right="2%"),
+            )
+            .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {c} ({d}%)"))
+        )
+        
+        # 生成条形图
+        bar = (
+            Bar(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
+            .add_xaxis(["积极评论", "中性评论", "消极评论"])
+            .add_yaxis("评论数量", [positive_count, neutral_count, negative_count])
+            .set_global_opts(
+                title_opts=opts.TitleOpts(title="评论数量对比"),
+                xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=-15)),
+                yaxis_opts=opts.AxisOpts(name="数量"),
+            )
+        )
+        
+        return render_template(
+            "visualization.html", 
+            pie_chart=pie.render_embed(),
+            bar_chart=bar.render_embed(),
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+if __name__ == '__main__':
+    # 确保评论目录存在
+    os.makedirs('comment', exist_ok=True)
+    # 确保评论文件存在
+    if not os.path.exists(COMMENTS_FILE):
+        with open(COMMENTS_FILE, 'w', encoding='utf-8') as f:
+            pass
+    
+    # 将HTML文件复制到templates目录
+    templates_dir = 'templates'
+    os.makedirs(templates_dir, exist_ok=True)
+    shutil.copy('app.html', os.path.join(templates_dir, 'app.html'))
+    
+    app.run(debug=True) 

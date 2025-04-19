@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评论情感分析系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.8;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            color: #333;
+            background-color: #f9f9f9;
+            font-size: 16px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 36px;
+        }
+        h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+        }
+        .left-panel {
+            flex: 1;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        }
+        .right-panel {
+            flex: 1;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .analysis-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        .tab-container {
+            margin-top: 30px;
+        }
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-button {
+            padding: 14px 22px;
+            background-color: #f1f1f1;
+            border: 2px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            margin-right: 8px;
+            border-radius: 8px 8px 0 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .tab-button.active {
+            background-color: white;
+            border-bottom: 2px solid white;
+            margin-bottom: -2px;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-top: none;
+            min-height: 240px;
+            max-height: 450px;
+            overflow-y: auto;
+            font-size: 16px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .loading {
+            text-align: center;
+            margin: 25px 0;
+            display: none;
+        }
+        .spinner {
+            border: 6px solid rgba(0, 0, 0, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 16px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .visualization-button {
+            background-color: #27ae60;
+            margin-top: 25px;
+            width: 100%;
+        }
+        .visualization-button:hover {
+            background-color: #219955;
+        }
+        .actions-container {
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>评论情感分析系统</h1>
+    </header>
+
+    <div class="container">
+        <div class="left-panel">
+            <h2>获取评论</h2>
+            <div class="alert alert-success" id="success-alert"></div>
+            <div class="alert alert-error" id="error-alert"></div>
+            
+            <div class="form-group">
+                <label for="url-input">输入网址进行爬取（当前仅支持超星网址课程评论）:</label>
+                <input type="text" id="url-input" placeholder="请输入要爬取的网址">
+                <button id="crawl-button">爬取评论</button>
+            </div>
+
+            <div class="form-group">
+                <label for="file-input">或上传评论文件 (txt格式):</label>
+                <input type="file" id="file-input" accept=".txt">
+                <button id="upload-button">上传文件</button>
+            </div>
+
+            <div class="loading" id="loading-crawler">
+                <div class="spinner"></div>
+                <p>正在爬取评论，请稍候...</p>
+            </div>
+
+            <div class="form-group">
+                <label for="comments-display">评论内容:</label>
+                <textarea id="comments-display" readonly></textarea>
+            </div>
+
+            <div class="analysis-buttons">
+                <button id="analyze-chinese">中文评论分析</button>
+                <button id="analyze-japanese">日语评论分析</button>
+                <button id="analyze-ai">AI评论分析</button>
+            </div>
+
+            <div class="loading" id="loading-analysis">
+                <div class="spinner"></div>
+                <p>正在分析，请稍候...</p>
+            </div>
+
+            <div class="actions-container">
+                <button id="visualization-button" class="visualization-button" onclick="window.location.href='/visualization'" disabled>数据可视化</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <h2>分析结果</h2>
+            
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <div class="tab-button active" data-tab="positive">积极评论</div>
+                    <div class="tab-button" data-tab="neutral">中性评论</div>
+                    <div class="tab-button" data-tab="negative">消极评论</div>
+                </div>
+                
+                <div class="tab-content active" id="positive-content"></div>
+                <div class="tab-content" id="neutral-content"></div>
+                <div class="tab-content" id="negative-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const urlInput = document.getElementById('url-input');
+            const fileInput = document.getElementById('file-input');
+            const crawlButton = document.getElementById('crawl-button');
+            const uploadButton = document.getElementById('upload-button');
+            const commentsDisplay = document.getElementById('comments-display');
+            const analyzeChineseButton = document.getElementById('analyze-chinese');
+            const analyzeJapaneseButton = document.getElementById('analyze-japanese');
+            const analyzeAiButton = document.getElementById('analyze-ai');
+            const loadingCrawler = document.getElementById('loading-crawler');
+            const loadingAnalysis = document.getElementById('loading-analysis');
+            const successAlert = document.getElementById('success-alert');
+            const errorAlert = document.getElementById('error-alert');
+            const visualizationButton = document.getElementById('visualization-button');
+            
+            // 标签页相关元素
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // 显示警告/成功消息
+            function showAlert(element, message, duration = 3000) {
+                element.textContent = message;
+                element.style.display = 'block';
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, duration);
+            }
+            
+            // 爬取评论
+            crawlButton.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    showAlert(errorAlert, '请输入有效的网址');
+                    return;
+                }
+                
+                loadingCrawler.style.display = 'block';
+                
+                // 调用Python爬取函数
+                fetch('/crawl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingCrawler.style.display = 'none';
+                    if (data.success) {
+                        showAlert(successAlert, '爬取成功！');
+                        loadComments();
+                    } else {
+                        showAlert(errorAlert, '爬取失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    loadingCrawler.style.display = 'none';
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            });
+            
+            // 上传文件
+            uploadButton.addEventListener('click', function() {
+                const file = fileInput.files[0];
+                if (!file) {
+                    showAlert(errorAlert, '请选择文件');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(successAlert, '文件上传成功！');
+                        loadComments();
+                    } else {
+                        showAlert(errorAlert, '上传失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            });
+            
+            // 加载评论
+            function loadComments() {
+                fetch('/get_comments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        commentsDisplay.value = data.comments.join('\n');
+                    } else {
+                        showAlert(errorAlert, '获取评论失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            }
+            
+            // 分析中文评论
+            analyzeChineseButton.addEventListener('click', function() {
+                if (!commentsDisplay.value.trim()) {
+                    showAlert(errorAlert, '请先获取评论内容');
+                    return;
+                }
+                
+                loadingAnalysis.style.display = 'block';
+                
+                fetch('/analyze_chinese', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingAnalysis.style.display = 'none';
+                    if (data.success) {
+                        showAlert(successAlert, '中文评论分析完成！');
+                        loadAnalysisResults();
+                        visualizationButton.disabled = false;
+                    } else {
+                        showAlert(errorAlert, '分析失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    loadingAnalysis.style.display = 'none';
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            });
+            
+            // 分析日语评论
+            analyzeJapaneseButton.addEventListener('click', function() {
+                if (!commentsDisplay.value.trim()) {
+                    showAlert(errorAlert, '请先获取评论内容');
+                    return;
+                }
+                
+                loadingAnalysis.style.display = 'block';
+                
+                fetch('/analyze_japanese', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingAnalysis.style.display = 'none';
+                    if (data.success) {
+                        showAlert(successAlert, '日语评论分析完成！');
+                        loadAnalysisResults();
+                        visualizationButton.disabled = false;
+                    } else {
+                        showAlert(errorAlert, '分析失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    loadingAnalysis.style.display = 'none';
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            });
+            
+            // AI分析评论
+            analyzeAiButton.addEventListener('click', function() {
+                if (!commentsDisplay.value.trim()) {
+                    showAlert(errorAlert, '请先获取评论内容');
+                    return;
+                }
+                
+                loadingAnalysis.style.display = 'block';
+                
+                fetch('/analyze_ai', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingAnalysis.style.display = 'none';
+                    if (data.success) {
+                        showAlert(successAlert, 'AI评论分析完成！');
+                        loadAnalysisResults();
+                        visualizationButton.disabled = false;
+                    } else {
+                        if (data.status === 1) {
+                            showAlert(errorAlert, '网络错误，请检查连接后重试');
+                        } else {
+                            showAlert(errorAlert, '分析失败: ' + data.error);
+                        }
+                    }
+                })
+                .catch(error => {
+                    loadingAnalysis.style.display = 'none';
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            });
+            
+            // 加载分析结果
+            function loadAnalysisResults() {
+                fetch('/get_analysis_results')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('positive-content').innerHTML = formatComments(data.positive);
+                        document.getElementById('neutral-content').innerHTML = formatComments(data.neutral);
+                        document.getElementById('negative-content').innerHTML = formatComments(data.negative);
+                    } else {
+                        showAlert(errorAlert, '获取分析结果失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showAlert(errorAlert, '请求错误: ' + error);
+                });
+            }
+            
+            // 格式化评论
+            function formatComments(comments) {
+                if (!comments.length) {
+                    return '<p>没有相关评论</p>';
+                }
+                
+                return comments.map(comment => `<p>${comment}</p>`).join('');
+            }
+            
+            // 标签页切换
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // 更新按钮状态
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 更新内容显示
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+
+            // 检查是否有分析结果，如果有则启用可视化按钮
+            fetch('/get_analysis_results')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.positive.length > 0 || data.neutral.length > 0 || data.negative.length > 0) {
+                        visualizationButton.disabled = false;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('获取分析结果失败:', error);
+            });
+        });
+    </script>
+</body>
+</html>
