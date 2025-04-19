@@ -19,6 +19,10 @@ NEUTRAL_FILE = 'comment/neutral.txt'
 NEGATIVE_FILE = 'comment/negative.txt'
 
 @app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/home')
 def home():
     return render_template('app.html')
 
@@ -180,5 +184,6 @@ if __name__ == '__main__':
     templates_dir = 'templates'
     os.makedirs(templates_dir, exist_ok=True)
     shutil.copy('app.html', os.path.join(templates_dir, 'app.html'))
+    shutil.copy('index.html', os.path.join(templates_dir, 'index.html'))
     
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False) 
