@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 import os
 import shutil
 from paqu import main_paqu as crawl_main
@@ -20,11 +20,11 @@ NEGATIVE_FILE = 'comment/negative.txt'
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return redirect('/app.html')
 
 @app.route('/home')
 def home():
-    return render_template('app.html')
+    return redirect('/app.html')
 
 @app.route('/crawl', methods=['POST'])
 def crawl():
@@ -204,6 +204,9 @@ if __name__ == '__main__':
     os.makedirs(templates_dir, exist_ok=True)
     shutil.copy('app.html', os.path.join(templates_dir, 'app.html'))
     shutil.copy('index.html', os.path.join(templates_dir, 'index.html'))
+    
+    # 复制为静态文件
+    shutil.copy('app.html', 'app.html')
     
     # 生成初始静态页面
     try:
