@@ -74,6 +74,8 @@ def get_comments():
 def analyze_chinese():
     try:
         analyse_chinese_comments(COMMENTS_FILE)
+        # 生成可视化页面
+        generate_visualization_html()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -82,6 +84,8 @@ def analyze_chinese():
 def analyze_japanese():
     try:
         analyse_japanese_comments(COMMENTS_FILE)
+        # 生成可视化页面
+        generate_visualization_html()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -91,6 +95,8 @@ def analyze_ai():
     try:
         status = ai_analysis(COMMENTS_FILE)
         if status == 0:
+            # 生成可视化页面
+            generate_visualization_html()
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'status': status})
@@ -120,50 +126,63 @@ def read_file_if_exists(file_path):
             return [line.strip() for line in f.readlines()]
     return []
 
+# 生成静态化的可视化页面
+def generate_visualization_html():
+    # 读取分析结果
+    positive = read_file_if_exists(POSITIVE_FILE)
+    neutral = read_file_if_exists(NEUTRAL_FILE)
+    negative = read_file_if_exists(NEGATIVE_FILE)
+    
+    positive_count = len(positive)
+    neutral_count = len(neutral)
+    negative_count = len(negative)
+    
+    # 生成饼图
+    pie = (
+        Pie(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
+        .add(
+            "",
+            [
+                ["积极评论", positive_count],
+                ["中性评论", neutral_count],
+                ["消极评论", negative_count],
+            ],
+            radius=["40%", "75%"],
+        )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title="评论情感分布"),
+            legend_opts=opts.LegendOpts(orient="vertical", pos_top="15%", pos_right="2%"),
+        )
+        .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {c} ({d}%)"))
+    )
+    
+    # 生成条形图
+    bar = (
+        Bar(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
+        .add_xaxis(["积极评论", "中性评论", "消极评论"])
+        .add_yaxis("评论数量", [positive_count, neutral_count, negative_count])
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title="评论数量对比"),
+            xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=-15)),
+            yaxis_opts=opts.AxisOpts(name="数量"),
+        )
+    )
+    
+    # 生成并保存静态HTML文件
+    content = render_template(
+        "visualization.html", 
+        pie_chart=pie.render_embed(),
+        bar_chart=bar.render_embed(),
+    )
+    with open('visualization.html', 'w', encoding='utf-8') as f:
+        f.write(content)
+
 # 数据可视化路由
 @app.route('/visualization')
 def visualization():
     try:
-        # 读取分析结果
-        positive = read_file_if_exists(POSITIVE_FILE)
-        neutral = read_file_if_exists(NEUTRAL_FILE)
-        negative = read_file_if_exists(NEGATIVE_FILE)
-        
-        positive_count = len(positive)
-        neutral_count = len(neutral)
-        negative_count = len(negative)
-        
-        # 生成饼图
-        pie = (
-            Pie(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
-            .add(
-                "",
-                [
-                    ["积极评论", positive_count],
-                    ["中性评论", neutral_count],
-                    ["消极评论", negative_count],
-                ],
-                radius=["40%", "75%"],
-            )
-            .set_global_opts(
-                title_opts=opts.TitleOpts(title="评论情感分布"),
-                legend_opts=opts.LegendOpts(orient="vertical", pos_top="15%", pos_right="2%"),
-            )
-            .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {c} ({d}%)"))
-        )
-        
-        # 生成条形图
-        bar = (
-            Bar(init_opts=opts.InitOpts(width="800px", height="400px", theme=ThemeType.LIGHT))
-            .add_xaxis(["积极评论", "中性评论", "消极评论"])
-            .add_yaxis("评论数量", [positive_count, neutral_count, negative_count])
-            .set_global_opts(
-                title_opts=opts.TitleOpts(title="评论数量对比"),
-                xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=-15)),
-                yaxis_opts=opts.AxisOpts(name="数量"),
-            )
-        )
-        
+        # 生成可视化页面
+        generate_visualization_html()
         return render_template(
             "visualization.html", 
             pie_chart=pie.render_embed(),
@@ -185,5 +204,11 @@ if __name__ == '__main__':
     os.makedirs(templates_dir, exist_ok=True)
     shutil.copy('app.html', os.path.join(templates_dir, 'app.html'))
     shutil.copy('index.html', os.path.join(templates_dir, 'index.html'))
+    
+    # 生成初始静态页面
+    try:
+        generate_visualization_html()
+    except:
+        pass
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False) 
