@@ -280,7 +280,7 @@
                 loadingCrawler.style.display = 'block';
                 
                 // 调用Python爬取函数
-                fetch('/crawl', {
+                fetch('/api/crawl', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -314,7 +314,7 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 
-                fetch('/upload', {
+                fetch('/api/upload', {
                     method: 'POST',
                     body: formData
                 })
@@ -334,7 +334,7 @@
             
             // 加载评论
             function loadComments() {
-                fetch('/get_comments')
+                fetch('/api/get_comments')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -357,7 +357,7 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                fetch('/analyze_chinese', {
+                fetch('/api/analyze_chinese', {
                     method: 'POST'
                 })
                 .then(response => response.json())
@@ -386,7 +386,7 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                fetch('/analyze_japanese', {
+                fetch('/api/analyze_japanese', {
                     method: 'POST'
                 })
                 .then(response => response.json())
@@ -415,7 +415,7 @@
                 
                 loadingAnalysis.style.display = 'block';
                 
-                fetch('/analyze_ai', {
+                fetch('/api/analyze_ai', {
                     method: 'POST'
                 })
                 .then(response => response.json())
@@ -441,7 +441,7 @@
             
             // 加载分析结果
             function loadAnalysisResults() {
-                fetch('/get_analysis_results')
+                fetch('/api/get_analysis_results')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -482,7 +482,7 @@
             });
 
             // 检查是否有分析结果，如果有则启用可视化按钮
-            fetch('/get_analysis_results')
+            fetch('/api/get_analysis_results')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

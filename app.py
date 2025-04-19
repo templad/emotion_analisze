@@ -26,7 +26,7 @@ def index():
 def home():
     return redirect('/app.html')
 
-@app.route('/crawl', methods=['POST'])
+@app.route('/api/crawl', methods=['POST'])
 def crawl():
     data = request.json
     url = data.get('url')
@@ -41,7 +41,7 @@ def crawl():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/upload', methods=['POST'])
+@app.route('/api/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'success': False, 'error': '没有上传文件'})
@@ -57,7 +57,7 @@ def upload_file():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/get_comments', methods=['GET'])
+@app.route('/api/get_comments', methods=['GET'])
 def get_comments():
     try:
         if not os.path.exists(COMMENTS_FILE):
@@ -70,7 +70,7 @@ def get_comments():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/analyze_chinese', methods=['POST'])
+@app.route('/api/analyze_chinese', methods=['POST'])
 def analyze_chinese():
     try:
         analyse_chinese_comments(COMMENTS_FILE)
@@ -80,7 +80,7 @@ def analyze_chinese():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/analyze_japanese', methods=['POST'])
+@app.route('/api/analyze_japanese', methods=['POST'])
 def analyze_japanese():
     try:
         analyse_japanese_comments(COMMENTS_FILE)
@@ -90,7 +90,7 @@ def analyze_japanese():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/analyze_ai', methods=['POST'])
+@app.route('/api/analyze_ai', methods=['POST'])
 def analyze_ai():
     try:
         status = ai_analysis(COMMENTS_FILE)
@@ -103,7 +103,7 @@ def analyze_ai():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/get_analysis_results', methods=['GET'])
+@app.route('/api/get_analysis_results', methods=['GET'])
 def get_analysis_results():
     try:
         # 读取分析结果
